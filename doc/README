@@ -17,3 +17,9 @@ ftp://download.fedora.redhat.com/pub/fedora/linux/core/updates/testing/4/i386/xm
 
 * netpbm-progs-10.31-1.FC4
 * ImageMagick-6.2.2.0-3.fc4.1
+
+# on Debian
+
+You can do something like:
+
+    apt-get install xmltex libxml2-utils xsltproc docbook-xsl docbook-xml netpbm imagemagick

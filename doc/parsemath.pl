@@ -5,7 +5,8 @@ BEGIN { push @INC, "perl-lib"; }
 use strict;
 use warnings;
 
-use encoding 'utf-8';
+use utf8;
+binmode(STDOUT, ":utf8");
 
 use XML::Reprocess 1.0 qw(parse);
 use Digest::MD5 qw(md5_hex);
