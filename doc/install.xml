@@ -1,0 +1,170 @@
+<chapter><title>Compile and install</title>
+  <sect1><title>Hardware, system and software requirements</title>
+    <para>
+      The &mpfq; library is currently developped mostly for the
+      <code>x86_64</code> architecture (Intel's Core2 and AMD's Opteron
+      processors). In principle, there is a plain C fallback implementation
+      based on GMP for each function; so any hardware supported by GMP
+      should be ok.
+    </para>
+    <para>
+      As for the operating system, the library is developped under
+      GNU-Linux; it is expected to be not too hard to port to other
+      Unices, but this is not thoroughly tested.
+    </para>
+    <para>
+      &mpfq; requires some tools for the automatic code generation, and
+      for the compilation:
+      <itemizedlist>
+        <listitem><para> &perl;. Tested with versions 5.8.8 and higher  </para></listitem>
+        <listitem><para> GCC. Better choose a version 4.x or higher.
+            <emphasis>Beware</emphasis>. GCC versions 4.3.0 and 4.3.1
+            suffer from a severe bug (numbered
+            <!--
+            <link
+              linkend="http://gcc.gnu.org/bugzilla/show_bug.cgi?id=37101">
+            </link>
+            -->
+            37101
+            in GCC's bug
+            tracking system)
+            which affects SSE-2 code generation.
+            This may impact generated code for
+            <math>\mathbb{F}_{2^n}</math> unpredictably, the outcome
+            being wrong generated code. For
+            this reason, these compiler versions should be avoided. The
+            bug in question is fixed in GCC 4.3.2.
+        </para></listitem>
+        <listitem><para> GMP. Tested with version 4.2.2 and higher.
+            Must be compiled
+            without nails. If you give the location of
+            <code>gmp-impl.h</code> and <code>longlong.h</code>, this
+            might yield a speed up to &mpfq;.  </para></listitem>
+        <listitem><para> CMake. Last tested with 2.8.9 ; should work
+        with most recent versions as well.</para></listitem>
+      </itemizedlist>
+      Building the documentation (which you are currently reading, so
+      probably of little interest) requires some additional tools:
+            <itemizedlist>
+              <listitem><para>A complete tool chain for generating
+                  docbook documents. This includes in particular the
+                  <code>xmllint</code> and <code>xsltproc</code>
+                  programs, as well as the standard DocBook DTDs and
+                  style sheets. The corresponding packages are available
+                  in most Linux distributions.  <!-- For example, on a Fedora 9 system, these
+                  requirements are satisfied if the installed set of
+                  packages contains
+                  <code>libxslt</code>, <code>libxml2</code>,
+                  <code>docbook-simple</code>,
+                  <code>docbook-dtds</code>,
+                  <code>docbook-style-dsssl</code>,
+                  <code>docbook-style-xsl</code>. -->
+              </para></listitem>
+              <listitem><para>Tools for parsing latex-style math text,
+                  and converting this to png images. The current scripts
+                  included with &mpfq; achieve this goal using the
+                  following programs:            <itemizedlist>
+              <listitem><para>latex</para></listitem>
+              <listitem><para>ImageMagick</para></listitem>
+            </itemizedlist>
+        </para></listitem></itemizedlist>
+      </para>
+  </sect1>
+  <sect1><title>Generating C source and header files</title>
+    <para> First thing is to get a copy of MPFQ from
+      <code>http://www.mpfq.org</code> and to uncompress it to get the
+      sources in a path that we call in the following
+      <code>path_to_mpfq</code>. </para>
+    <para> With CMake, out-of-source compiling is mandatory, so create a
+      directory to contain the build. Let's call it
+      <code>build_dir</code> in the sequel. </para>
+    <para> Go to <code>build_dir</code>, run cmake and make:
+      <synopsis>
+$ mkdir build_dir
+$ cd build_dir
+$ cmake path_to_mpfq/src
+$ make
+      </synopsis>
+    </para>
+    <para> This will create in <code>build_dir</code> a directory tree
+      similar to that of <code>path_to_mpfq/src</code> containing a lot of
+      CMake junk, macro-generated source files and compiled files. It is
+      reasonable to pass the <code>-j</code> to the <code>make</code>, in
+      order to use the mulicore / hyperthreaded capabilities of your computer
+      to speed-up this rather long compilation.
+    </para>
+  </sect1>
+  <sect1><title>Installing.</title>
+    <para> Typing <code>make install</code> will copy all the required
+      header files in <code>prefix/include/mpfq</code> and
+      <code>libmpfq_gfp.a</code>, <code>libmpfq_gfpe.a</code>
+      and <code>libmpfq_gf2n.a</code> into
+      <code>prefix/lib</code>. The default value for <code>prefix</code>
+      is <code>/usr/local</code>. </para>
+    <para> Compiling options, including this <code>prefix</code>
+      parameter can be changed using the mechanism provided by CMake,
+      namely typing <code>ccmake .</code> to call a GUI, or calling
+      CMake with the command <code>cmake path_to_mpfq/src
+        -DCMAKE_INSTALL_PREFIX=your_prefix</code></para>
+    <para>Furthermore, CMake allows for the typicall ``staged install''
+      mechanism, by accepting a <code>DESTDIR=</code> argument to the
+      <code>make install</code> command.</para>
+    <para> Note that once the files are installed, your applications can
+      use them in a classical way, without using CMake.</para>
+  </sect1>
+  <sect1><title>Optional targets</title>
+    <para>
+      You can optionally run <code>make</code> with the following
+      targets:
+    </para>
+    <sect2><title>Examples</title>
+      <itemizedlist>
+        <listitem><para> <code>apps</code> Build the
+            example applications given in the <code>src/apps</code>
+            subdirectory of
+            the distribution. 
+        </para></listitem>
+      </itemizedlist>
+    </sect2>
+    <sect2><title>Targets for checking</title>
+      <itemizedlist>
+        <listitem><para> <code>check</code> Run all tests listed below.
+        </para></listitem>
+          <listitem><para><code>check-TAG</code>, e.g.
+              <code>check-2_113</code> 
+         Run some test for the
+            arithmetic of one field implementation,
+            <math>\mathbb{F}_{2^{113}}</math> in this
+            example.</para></listitem>
+        <listitem><para> <code>check-gfp</code> Run some tests for prime
+            field arithmetic. </para></listitem>
+        <listitem><para> <code>check-gfpe</code> Run some tests for
+            extensions of prime field arithmetic. </para></listitem>
+        <listitem><para> <code>check-g2n</code> Run some tests for
+            characteristic 2 field arithmetic. </para></listitem>
+        <listitem><para> <code>check-apps</code> Run some tests for the
+            example applications.
+        </para></listitem>
+      </itemizedlist>
+    </sect2>
+    <sect2><title>Targets for benching</title>
+      <itemizedlist>
+      <listitem><para> <code>bench</code> Measure the running time of
+          basic operations in all implemented fields (takes a long time).
+      </para></listitem>
+      <listitem><para> <code>mpfqbench</code> Run a bench that returns
+          a single score for the whole library.
+      </para></listitem>
+      <listitem><para> <code>bench-apps</code> Bench applications.
+      </para></listitem>
+    </itemizedlist>
+    </sect2>
+    <sect2><title>Targets for tuning</title>
+      <para>The following targets are related to the tuning mechanism
+        documented in the next chapter:<itemizedlist>
+          <listitem><para><code>tune-gf2n</code></para></listitem>
+          <listitem><para><code>tune-TAG</code></para></listitem>
+    </itemizedlist></para></sect2>
+
+  </sect1>
+</chapter>

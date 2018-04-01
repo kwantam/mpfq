@@ -1,0 +1,90 @@
+<chapter><title>Introduction</title>
+  <!-- <section>Objectives of &mpfq;</section> -->
+  <para>
+    &mpfq; is a software library intended for manipulation of finite
+    fields. The announced objectives of &mpfq; are both speed and
+    usability. It is well-known that such objectives are hard to
+    conciliate. We acknowledge a clear bias towards speed, since no
+    concession is made in this regard. However the interface of &mpfq; is
+    expected to become sufficient for most intended uses.
+  </para>
+  <para>
+    The prominent strength of &mpfq; is to deliver top-notch performance
+    for finite fields of moderate size when some characteristics (e.g.,
+    modulus size) are known in advance. This is a very common
+    application. Existing libraries so far offer the possibility to
+    completely configure the finite fields used at runtime. For this
+    reason alone, serious evaluation of the speed of an algorithm on
+    a precise finite field often requires reimplementing the finite field
+    layer.
+  </para>
+  <para>
+    &mpfq; achieves good performance for predefined fields by providing
+    automatically generated special-purpose code. A large portion of the
+    &mpfq; library is therefore written in &perl;.
+  </para>
+  <para>
+    The two main targets of &mpfq; are the Galois fields &gf2n; and &gfp;
+    with <math>p</math> prime. Extensions of prime fields of
+    characteristic other than <math>2</math> will be supported at some
+    point for completeness, but they are not the
+    primary target for optimization.
+  </para>
+  <sect1><title>Specializing code for a given field</title>
+    <para>
+      An important feature of &mpfq; is to allow the user to implement a
+      specialization of a code in order to take advantage of
+      optimizations that are available only for a field or a small class
+      of fields. For instance, once you have an efficient implementation
+      for prime fields for which the modulus fits in 2 machine words, you
+      might have an application that deals with &gfp; where
+      <math>p</math> is a Mersenne-like prime for which a very fast
+      reduction algorithm is available. Adding such an optimized
+      reduction is not too hard in &mpfq;, and you will get the full
+      speed, since no test is done at runtime: you will have another
+      C-type and new function names for this new field additionally to
+      the previous general ones.
+    </para>
+    <para>
+      In principle, it is possible to add optimizations written in the C
+      language or in assembly.
+    </para>
+  </sect1>
+  <sect1> <title>Generalizing code for a large set of fields</title>
+    <para>
+      The &mpfq; framework allows also to write generic, high level,
+      code, that will have all the tests and branches at runtime. This is
+      not the first goal, but it might be convenient to have this kind of
+      setting at some point.
+    </para>
+    <para>
+      In the same spirit, it could be possible to have a C++ wrapper, to
+      obtain all the coding facilities of object-oriented programming,
+      and overriding operators. Again, this is not the priority, and we
+      let this for the future.
+    </para>
+  </sect1>
+  <sect1> <title>Reporting bugs, comments, feature requests...</title>
+    <para>
+      We acknowledge that it is not unlikely
+      that there are many bugs hidden in parts that the authors do not
+      often use. You can send your bug report, comments and feature
+      requests to the following mailing list that is read by the authors:
+      <synopsis>
+        mpfq-discuss@lists.gforge.inria.fr
+      </synopsis>
+    </para>
+    <para>
+      There are things that we are probably going to fix rapidly, and
+      others that we are going to find non-prioritary. A typical thing
+      that we do not plan to work on is the portability to other
+      architectures, systems, compilers. 
+    </para>
+    <para>
+      On the other side, if you have an application that is time-critical
+      and that uses a particular field, tell us! We might find it fun to
+      optimize it for you.
+    </para>
+  </sect1>
+</chapter>
+

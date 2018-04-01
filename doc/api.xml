@@ -1,0 +1,507 @@
+<chapter id="mpfq.api"><title>Writing applications using &mpfq;</title>
+  <section><title>Organization of &mpfq; code</title>
+    <para>
+      There are two important notions in &mpfq;: the <code>api_extension</code>
+      and the <code>FieldFamily</code> (also called the <code>TAG</code>).
+      Their meanings are the following:
+      <itemizedlist>
+        <listitem><para>
+            In &mpfq;, there is a basis API. In some cases, one might
+            want to define more funtions.  We call
+            <code>api_extension</code> a package of functions that we can
+            choose to add to the basis API. For instance,
+            <code>CHAR2</code> is an <code>api_extension</code>
+            containing functions we want for fields of characteristic 2.
+            <code>MGY</code> is another <code>api_extension</code> for
+            fields in Montgomery representation. 
+        </para></listitem>
+        <listitem><para>
+            A <code>FieldFamily</code>, or a <code>TAG</code> corresponds
+            to an implementation of a (possibly reduced to one element)
+            family of fields. Each <code>FieldFamily</code> have the
+            feature of the basis API plus the <code>api_extension</code>s
+            that were chosen to make his use more convinient. Examples of
+            <code>FieldFamily</code>s are <code>2_128</code> that is the
+            field <code>GF(2^{128})</code>, <code>pm_3</code> that is for
+            the family of prime fields for which the modulus fits in 3
+            words and elements are in Montgomery representation.
+        </para></listitem>
+      </itemizedlist>
+    </para>
+    <para>
+      Available <code>api_extensions</code>:
+      <itemizedlist>
+        <listitem><para>
+            <code>CHAR2</code>: fields of characteristic 2
+        </para></listitem>
+        <!--
+        <listitem><para>
+            <code>PRIME</code>: prime fields in classical representation
+        </para></listitem>
+        -->
+        <listitem><para>
+            <code>MGY</code>: prime fields in Montgomery representation
+        </para></listitem>
+        <listitem><para>
+            <code>POLY</code>: package that provides univariate polynomials
+            with coefficients in the field
+        </para></listitem>
+      </itemizedlist>
+    </para>
+    <para>
+      Available <code>FieldFamily</code>:
+      <itemizedlist>
+        <listitem><para>
+            <code>2_x</code> for <code>x</code> in <code>[2..255]</code>.
+            This gives the finite field <code>GF(2^x)</code> in
+            polynomial representation with a hard-coded (sparse) defining
+            polynomial.
+        </para></listitem>
+        <listitem><para>
+            <code>p_x</code> for <code>x</code> in <code>[1..9]</code>.
+            This family implements any prime field for which
+            <code>p</code> fits in <code>x</code> machine words. The
+            elements are stored in classical representation.
+        </para></listitem>
+        <listitem><para>
+            <code>p_x_5</code> for <code>x</code> in <code>[0..8]</code>.
+            This family implements any prime field for which
+            <code>p</code> fits in <code>x</code> and a half machine words. The
+            elements are stored in classical representation.
+        </para></listitem>
+        <listitem><para>
+            <code>p_25519</code>. This implements the field
+            <code>GF(2^{255}-19)</code>.
+        </para></listitem>
+        <listitem><para>
+            <code>p_127_1</code>. This implements the field
+            <code>GF(2^{127}-1)</code>.
+        </para></listitem>
+        <listitem><para>
+            <code>p_127_735</code>. This implements the field
+            <code>GF(2^{127}-735)</code>.
+        </para></listitem>
+        <listitem><para>
+            <code>pm_x</code> for <code>x</code> in <code>[1..9]</code>.
+            This family implements any prime field for which
+            <code>p</code> fits in <code>x</code> machine words. The
+            elements are stored in Montgomery representation.
+        </para></listitem>
+        <listitem><para>
+            <code>pm_x_5</code> for <code>x</code> in <code>[0..8]</code>.
+            This family implements any prime field for which
+            <code>p</code> fits in <code>x</code> and a half machine words. The
+            elements are stored in Montgomery representation.
+        </para></listitem>
+        <listitem><para>
+            <code>pf_e</code> where <code>pf</code> is one of the four <code>TAG</code>s <code>p_x</code>, <code>p_x_5</code>, <code>pm_x</code> or <code>pm_x_5</code>. This family implements an extention of the base field implemented through <code>pf</code>. The elements are stored as polynomial with coefficent in the base field.
+        </para></listitem>
+        <!--
+        <listitem><para>
+            <code>p</code>. A generic implementation for any prime field,
+            with elements in classical representation.
+        </para></listitem>
+        -->
+      </itemizedlist>
+    </para>
+    <para>
+      The <code>FieldFamily</code>s <code>2_x</code> implement the <code>api_extension</code> <code>CHAR2</code>, <code>pm_x</code> and <code>pm_x_5</code> implement <code>MGY</code>, and all <code>FieldFamily</code> above implement the <code>api_extension</code> <code>POLY</code>.
+    </para>
+    <para>
+      To each <code>FieldFamily</code> will correspond a C-type for fields and elements, and a set of functions following the basis API and eventually the <code> api_extension </code>s this family requires. All of them are gathered into a <code>.c</code> and a <code>.h</code> files
+      named:
+      <synopsis>
+        mpfq_FieldFamily.c   mpfq_FieldFamily.h
+      </synopsis>
+      Most of the code will actually be inside the <code>.h</code> file, so that the functions get inlined during compilation.
+    </para>
+  </section>
+
+
+  <section id="api.functionames"><title>Names of &mpfq; functions</title>
+    <para>The names of the functions in the &mpfq; library (tend to)
+      follow the following pattern:
+      <code>mpfq_FieldFamily_ObjectClass_Operation()</code>, where
+      <itemizedlist>
+	<listitem><para>
+            <code>FieldFamily</code> is a string (also called
+            <code>TAG</code>) that defines the family
+	    of fields for which this function is available. Examples:
+	    <code>2_128</code>, <code>p_3</code>, <code>pm_3_5_e</code>.
+	</para></listitem>
+	<listitem><para>
+	    <code>ObjectClass</code> is a string that gives the class of
+	    objects the operation is acting on. It can be
+	    <code>field</code>, <code>poly</code>, <code>vec</code> ...
+	    It is omitted if the objects are elements in the base field.
+	</para></listitem>
+	<listitem><para>
+	    <code>Operation</code> is a string that identifies the
+	    operation to be performed. Examples: <code>mul</code>,
+	    <code>init</code>, <code>print</code> ...
+	</para></listitem>
+      </itemizedlist>
+    </para>
+    <para>
+      For instance, the function <code>mpfq_2_19_vec_init()</code> is
+      for initializing vectors of elements over the field
+      <math>\mathbb{F}_{2^{19}}</math>.
+    </para>
+    <para>
+      The function <code>mpfq_p_2_mul()</code> is for multiplying elements
+      of prime fields, for which the prime <code>p</code> fits in two machine word and coded in classical representation.
+    </para>
+  </section> 
+  
+  <section> <title>General API of an &mpfq; field</title>
+    <para>
+      All finite fields in &mpfq; follow the same API that is defined in
+      the file <code>api.pl</code> shipped with the &mpfq; distribution.
+      We reproduce it here, but if you have doubts about a possible
+      mistake in this doc, please refer to the <code>api.pl</code> file
+      within the source tree. This file is responsible for the
+      enforcement of the calling parameters in the generated code and
+      therefore closest to what is actually implemented.
+    </para>
+    <para> 
+      In what follows, we assume that the <code>FieldFamily</code> is
+      <code>TAG</code>.
+    </para>
+    <para>
+      Exported types:
+      <synopsis>
+    typedef mpfq_TAG_field;
+    typedef mpfq_TAG_dst_field;
+    
+    typedef mpfq_TAG_elt;
+    typedef mpfq_TAG_dst_elt;
+    typedef mpfq_TAG_src_elt;
+    
+    typedef mpfq_TAG_elt_ur;
+    typedef mpfq_TAG_dst_elt_ur;
+    typedef mpfq_TAG_src_elt_ur;
+
+    typedef mpfq_TAG_vec;
+    typedef mpfq_TAG_dst_vec;
+    typedef mpfq_TAG_src_vec;
+
+    typedef mpfq_TAG_vec_ur;
+    typedef mpfq_TAG_dst_vec_ur;
+    typedef mpfq_TAG_src_vec_ur;
+      </synopsis>
+      The <code>field</code> and <code>dst_field</code> types are for
+      storing the current finite field. In some cases, the
+      <code>TAG</code> already defines a unique finite field, however,
+      even in that case, it is mandatory to have such a type, for
+      consistency of the interface. An element of the finite field can be declared using
+      the <code>elt</code> type. The <code>elt</code> type comes with two friends which give
+      the types for passing elements as arguments of functions. The
+      <code>src</code> variant translates into the <code>const</code>
+      keyword.
+      An unreduced element can be stored in a variable of type
+      <code>elt_ur</code>. An unreduced element is a sum of products of two elements, for which the simplification has not been performed: reduction modulo <code>p</code> for prime fields in classical representation, montgomery reduction for prime fields in montgomery representation, and polynomial division for extension field like <code>2_n</code> or <code>TAG_e</code> .
+       Only a few functions are available for manipulating unreduced elements.
+    </para>
+    <para>
+      The following functions are available. All of them take a pointer
+      to the finite field as first element. In all cases, the same
+      element can be given in input and ouput. In general, the name is
+      explicit enough, so that for most of them no explanation is really needed.
+      <synopsis>
+    /* Functions related to the field structure */
+    void mpfq_TAG_field_init(mpfq_TAG_dst_field);
+    void mpfq_TAG_field_clear(mpfq_TAG_dst_field);
+    void mpfq_TAG_field_specify(mpfq_TAG_dst_field, unsigned long, void *);
+    void mpfq_TAG_field_setopt(mpfq_TAG_dst_field, unsigned long, void *);
+    int mpfq_TAG_field_degree(mpfq_TAG_dst_field);
+    void field_characteristic(mpfq_TAG_dst_field, mpz_t);
+      </synopsis>
+      Calling the <code>field_init</code> function is mandatory before
+      doing anything with the field. In the case where <code>TAG</code>
+      identifies a unique field, there is nothing more to do, but if
+      <code>TAG</code> covers several finite fields, it is necessary to
+      specify the particular finite field you really want to work in. The
+      <code>field_specify</code> is meant for that purpose. The
+      <code>unsigned long</code> argument describes the kind of
+      specification. It can be <code>MPFQ_PRIME_MPN</code>, <code>MPFQ_PRIME_MPZ</code> or <code>MPFQ_POLYNOMIAL</code><!--, or <code>MPFQ_DEGREE</code>-->. The last
+      argument identifies the finite field your want.  For
+      <code>MPFQ_PRIME_MPN</code>, one must pass an <code>mp_limb_t *</code>
+      value of the proper width to be used by the implementation.  For
+      <code>MPFQ_PRIME_MPZ</code>, you must pass an <code>mpz</code>
+      value. <!--For <code>MPFQ_DEGREE</code>, the last argument should be a
+      pointer to an unsigned long.--> In the case of
+      <code>MPFQ_POLYNOMIAL</code>, this will depend on the underlying
+      field, which is admittedly somewhat messy. Whether
+      <code>MPFQ_PRIME_MPN</code> or <code>MPFQ_PRIME_MPZ</code> is
+      recognized, or both, is presently not specified. At the moment
+      <code>MPFQ_PRIME_MPZ</code> is always recognized, this might also
+      be the case of <code>MPFQ_PRIME_MPN</code> later on.
+    </para>
+    <para>
+      The <code>field_setopt</code> has the same behaviour: the
+      <code>unsigned long</code> argument gives the kind of optimization
+      you want, and the last argument allows you to pass some information
+      to describe the optimization. Note that this mechanism is intended to allow
+      some optimization or precomputation made at runtime, and is usually
+      not used for a <code>TAG</code> that describes a single field or a
+      small family of fields for which the optimizations and
+      precomputations can be made at compile-time.
+      <synopsis>
+    /* Element allocation functions */
+    void mpfq_TAG_init(mpfq_TAG_dst_field, mpfq_TAG_elt *);
+    void mpfq_TAG_clear(mpfq_TAG_dst_field, mpfq_TAG_elt *);
+
+    /* Element assignment functions */
+    void mpfq_TAG_set(mpfq_TAG_dst_field, mpfq_TAG_dst_elt, mpfq_TAG_src_elt);
+    void mpfq_TAG_set_ui(mpfq_TAG_dst_field, mpfq_TAG_dst_elt, unsigned long);
+    void mpfq_TAG_set_zero(mpfq_TAG_dst_field, mpfq_TAG_dst_elt);
+    unsigned long mpfq_TAG_get_ui(mpfq_TAG_dst_field, mpfq_TAG_src_elt);
+    void mpfq_TAG_set_mpn(mpfq_TAG_dst_field, mpfq_TAG_dst_elt, mp_limb_t *, size_t);
+    void mpfq_TAG_set_mpz(mpfq_TAG_dst_field, mpfq_TAG_dst_elt, mpz_t);
+    void mpfq_TAG_get_mpn(mpfq_TAG_dst_field, mp_limb_t *, mpfq_TAG_src_elt);
+    void mpfq_TAG_get_mpz(mpfq_TAG_dst_field, mpz_t, mpfq_TAG_src_elt);
+    void mpfq_TAG_random(mpfq_TAG_dst_field, mpfq_TAG_dst_elt, gmp_randstate_t);
+    void mpfq_TAG_random2(mpfq_TAG_dst_field, mpfq_TAG_dst_elt, gmp_randstate_t);
+      </synopsis>
+      Note that the randomness is taken from the GMP random functions.
+      We refer to the GMP documentation for initializing and seeding the
+      <code>gmp_randstate_t</code>.
+
+      <synopsis>
+    /* Arithmetic operations on elements */
+    void mpfq_TAG_add(mpfq_TAG_dst_field, mpfq_TAG_dst_elt, mpfq_TAG_src_elt, mpfq_TAG_src_elt);
+    void mpfq_TAG_sub(mpfq_TAG_dst_field, mpfq_TAG_dst_elt, mpfq_TAG_src_elt, mpfq_TAG_src_elt);
+    void mpfq_TAG_neg(mpfq_TAG_dst_field, mpfq_TAG_dst_elt, mpfq_TAG_src_elt);
+    void mpfq_TAG_mul(mpfq_TAG_dst_field, mpfq_TAG_dst_elt, mpfq_TAG_src_elt, mpfq_TAG_src_elt);
+    void mpfq_TAG_sqr(mpfq_TAG_dst_field, mpfq_TAG_dst_elt, mpfq_TAG_src_elt);
+    void mpfq_TAG_pow(mpfq_TAG_dst_field, mpfq_TAG_dst_elt, mpfq_TAG_src_elt, unsigned long *, size_t);
+    int mpfq_TAG_is_sqr(mpfq_TAG_dst_field, mpfq_TAG_src_elt);
+    int mpfq_TAG_sqrt(mpfq_TAG_dst_field, mpfq_TAG_dst_elt, mpfq_TAG_src_elt);
+    void mpfq_TAG_frobenius(mpfq_TAG_dst_field, mpfq_TAG_dst_elt, mpfq_TAG_src_elt);
+    void mpfq_TAG_add_ui(mpfq_TAG_dst_field, mpfq_TAG_dst_elt, mpfq_TAG_src_elt, unsigned long);
+    void mpfq_TAG_sub_ui(mpfq_TAG_dst_field, mpfq_TAG_dst_elt, mpfq_TAG_src_elt, unsigned long);
+    void mpfq_TAG_mul_ui(mpfq_TAG_dst_field, mpfq_TAG_dst_elt, mpfq_TAG_src_elt, unsigned long);
+    int mpfq_TAG_inv(mpfq_TAG_dst_field, mpfq_TAG_dst_elt, mpfq_TAG_src_elt);
+    void mpfq_TAG_hadamard(mpfq_TAG_dst_field, mpfq_TAG_dst_elt, mpfq_TAG_dst_elt, mpfq_TAG_dst_elt, mpfq_TAG_dst_elt);
+      </synopsis>
+      This last function <code>hadamard</code> is marked as optional in the API, so before using it, one should verify whether it is implemented in the <code>FieldFamilly</code> he wants to use; for all optional calls in the API, a preprocessor macro is defined if the function is provided. This symbol is <code>HAVE_TAG_FunctionName</code>, i.e. in this case <code>HAVE_mpfq_p_1_hadamard</code>.
+      <synopsis>
+
+    /* Operations involving unreduced elements */
+    void mpfq_TAG_elt_ur_init(mpfq_TAG_dst_field, mpfq_TAG_elt_ur *);
+    void mpfq_TAG_elt_ur_clear(mpfq_TAG_dst_field, mpfq_TAG_elt_ur *);
+    void mpfq_TAG_elt_ur_set(mpfq_TAG_dst_field, mpfq_TAG_dst_elt_ur, mpfq_TAG_src_elt_ur);
+    void mpfq_TAG_elt_ur_set_elt(mpfq_TAG_dst_field, mpfq_TAG_dst_elt_ur, mpfq_TAG_src_elt);
+    void mpfq_TAG_elt_ur_set_zero(mpfq_TAG_dst_field, mpfq_TAG_dst_elt_ur);
+    void mpfq_TAG_elt_ur_set_ui(mpfq_TAG_dst_field, mpfq_TAG_dst_elt_ur, unsigned long);
+    void mpfq_TAG_mul_ur(mpfq_TAG_dst_field, mpfq_TAG_dst_elt_ur, mpfq_TAG_src_elt, mpfq_TAG_src_elt);
+    void mpfq_TAG_sqr_ur(mpfq_TAG_dst_field, mpfq_TAG_dst_elt_ur, mpfq_TAG_src_elt);
+    void mpfq_TAG_elt_ur_add(mpfq_TAG_dst_field, mpfq_TAG_dst_elt_ur, mpfq_TAG_src_elt, mpfq_TAG_src_elt);
+    void mpfq_TAG_elt_ur_sub(mpfq_TAG_dst_field, mpfq_TAG_dst_elt_ur, mpfq_TAG_src_elt, mpfq_TAG_src_elt);
+    void mpfq_TAG_elt_ur_neg(mpfq_TAG_dst_field, mpfq_TAG_dst_elt_ur, mpfq_TAG_src_elt);
+    void mpfq_TAG_reduce(mpfq_TAG_dst_field, mpfq_TAG_dst_elt, mpfq_TAG_dst_elt_ur);
+    
+    /* Comparison functions */
+    int mpfq_TAG_cmp(mpfq_TAG_dst_field, mpfq_TAG_src_elt, mpfq_TAG_src_elt);
+    int mpfq_TAG_cmp_ui(mpfq_TAG_dst_field, mpfq_TAG_src_elt, unsigned long);
+    int mpfq_TAG_is_zero(mpfq_TAG_dst_field, mpfq_TAG_src_elt);
+      </synopsis>
+      The comparison functions return 0 if the elements are equal and 1
+      or -1 otherwise, depending on some arbitrary order (this order allows sorting).
+      <synopsis>
+
+    /* Input/output functions */
+    void mpfq_TAG_asprint(mpfq_TAG_dst_field, char**, mpfq_TAG_src_elt);
+    void mpfq_TAG_fprint(mpfq_TAG_dst_field, FILE*, mpfq_TAG_src_elt);
+    void mpfq_TAG_print(mpfq_TAG_dst_field, mpfq_TAG_src_elt);
+    int mpfq_TAG_sscan(mpfq_TAG_dst_field, mpfq_TAG_dst_elt, const char*);
+    int mpfq_TAG_fscan(mpfq_TAG_dst_field, FILE*, mpfq_TAG_dst_elt);
+    int mpfq_TAG_scan(mpfq_TAG_dst_field, mpfq_TAG_dst_elt);
+      </synopsis>
+      The function <code>asprint</code> prints the element in the given
+      string, ending with <code>\0</code> char. The functions
+      <code>sscan</code>, <code>fscan</code> and <code>scan</code> return
+      1 if the parsing was succesful and 0 otherwise.
+      <synopsis>
+
+    /* Vector allocation functions */
+    void mpfq_TAG_vec_init(mpfq_TAG_dst_field, mpfq_TAG_vec *, unsigned int);
+    void mpfq_TAG_vec_reinit(mpfq_TAG_dst_field, mpfq_TAG_vec *, unsigned int, unsigned int);
+    void mpfq_TAG_vec_clear(mpfq_TAG_dst_field, mpfq_TAG_vec *, unsigned int);
+
+    /* Vector assignment functions */
+    void mpfq_TAG_vec_set(mpfq_TAG_dst_field, mpfq_TAG_dst_vec, mpfq_TAG_src_vec, unsigned int);
+    void mpfq_TAG_vec_set_zero(mpfq_TAG_dst_field, mpfq_TAG_dst_vec, unsigned int);
+    void mpfq_TAG_vec_setcoef(mpfq_TAG_dst_field, mpfq_TAG_dst_vec, mpfq_TAG_src_elt, unsigned int);
+    void mpfq_TAG_vec_setcoef_ui(mpfq_TAG_dst_field, mpfq_TAG_dst_vec, unsigned long, unsigned int);
+    void mpfq_TAG_vec_getcoef(mpfq_TAG_dst_field, mpfq_TAG_dst_elt, mpfq_TAG_src_vec, unsigned int);
+    void mpfq_TAG_vec_random(mpfq_TAG_dst_field, mpfq_TAG_dst_vec, unsigned int, gmp_randstate_t);
+    void mpfq_TAG_vec_random2(mpfq_TAG_dst_field, mpfq_TAG_dst_vec, unsigned int, gmp_randstate_t);
+
+    /* Arithmetic operations on vectors */
+    void mpfq_TAG_vec_add(mpfq_TAG_dst_field, mpfq_TAG_dst_vec, mpfq_TAG_src_vec, mpfq_TAG_src_vec, unsigned int);
+    void mpfq_TAG_vec_neg(mpfq_TAG_dst_field, mpfq_TAG_dst_vec, mpfq_TAG_src_vec, unsigned int);
+    void mpfq_TAG_vec_rev(mpfq_TAG_dst_field, mpfq_TAG_dst_vec, mpfq_TAG_src_vec, unsigned int);
+    void mpfq_TAG_vec_sub(mpfq_TAG_dst_field, mpfq_TAG_dst_vec, mpfq_TAG_src_vec, mpfq_TAG_src_vec, unsigned int);
+    void mpfq_TAG_vec_scal_mul(mpfq_TAG_dst_field, mpfq_TAG_dst_vec, mpfq_TAG_src_vec, mpfq_TAG_src_elt, unsigned int);
+    void mpfq_TAG_vec_conv(mpfq_TAG_dst_field, mpfq_TAG_dst_vec, mpfq_TAG_src_vec, unsigned int, mpfq_TAG_src_vec, unsigned int);
+
+    /* Comparison functions */
+    int mpfq_TAG_vec_cmp(mpfq_TAG_dst_field, mpfq_TAG_src_vec, mpfq_TAG_src_vec, unsigned int);
+    int mpfq_TAG_vec_is_zero(mpfq_TAG_dst_field, mpfq_TAG_src_vec, unsigned int);
+
+    /* Input/output functions */
+    void mpfq_TAG_vec_asprint(mpfq_TAG_dst_field, char**, mpfq_TAG_src_vec, unsigned int);
+    void mpfq_TAG_vec_fprint(mpfq_TAG_dst_field, FILE*, mpfq_TAG_src_vec, unsigned int);
+    void mpfq_TAG_vec_print(mpfq_TAG_dst_field, mpfq_TAG_src_vec, unsigned int);
+    int mpfq_TAG_vec_sscan(mpfq_TAG_dst_field, mpfq_TAG_vec *, unsigned int *, const char*);
+    int mpfq_TAG_vec_fscan(mpfq_TAG_dst_field, FILE*, mpfq_TAG_vec *, unsigned int *);
+    int mpfq_TAG_vec_scan(mpfq_TAG_dst_field, mpfq_TAG_vec *, unsigned int *);
+
+    /* Operations involving unreduced elements */
+    void mpfq_TAG_vec_ur_init(mpfq_TAG_dst_field, mpfq_TAG_vec_ur *, unsigned int);
+    void mpfq_TAG_vec_ur_reinit(mpfq_TAG_dst_field, mpfq_TAG_vec_ur *, unsigned int, unsigned int);
+    void mpfq_TAG_vec_ur_clear(mpfq_TAG_dst_field, mpfq_TAG_vec_ur *, unsigned int);
+    void mpfq_TAG_vec_ur_set_zero(mpfq_TAG_dst_field, mpfq_TAG_dst_vec_ur, unsigned int);
+    void mpfq_TAG_vec_ur_set_vec(mpfq_TAG_dst_field, mpfq_TAG_dst_vec_ur, mpfq_TAG_src_vec, unsigned int);
+    void mpfq_TAG_vec_ur_set(mpfq_TAG_dst_field, mpfq_TAG_dst_vec_ur, mpfq_TAG_src_vec_ur, unsigned int);
+    void mpfq_TAG_vec_ur_setcoef(mpfq_TAG_dst_field, mpfq_TAG_dst_vec_ur, mpfq_TAG_src_elt_ur, unsigned int);
+    void mpfq_TAG_vec_ur_getcoef(mpfq_TAG_dst_field, mpfq_TAG_dst_elt_ur, mpfq_TAG_src_vec_ur, unsigned int);
+    void mpfq_TAG_vec_ur_add(mpfq_TAG_dst_field, mpfq_TAG_dst_vec_ur, mpfq_TAG_src_vec_ur, mpfq_TAG_src_vec_ur, unsigned int);
+    void mpfq_TAG_vec_ur_neg(mpfq_TAG_dst_field, mpfq_TAG_dst_vec_ur, mpfq_TAG_src_vec_ur, unsigned int);
+    void mpfq_TAG_vec_ur_rev(mpfq_TAG_dst_field, mpfq_TAG_dst_vec_ur, mpfq_TAG_src_vec_ur, unsigned int);
+    void mpfq_TAG_vec_ur_sub(mpfq_TAG_dst_field, mpfq_TAG_dst_vec_ur, mpfq_TAG_src_vec_ur, mpfq_TAG_src_vec_ur, unsigned int);
+    void mpfq_TAG_vec_scal_mul_ur(mpfq_TAG_dst_field, mpfq_TAG_dst_vec_ur, mpfq_TAG_src_vec, mpfq_TAG_src_elt, unsigned int);
+    void mpfq_TAG_vec_conv_ur(mpfq_TAG_dst_field, mpfq_TAG_dst_vec_ur, mpfq_TAG_src_vec, unsigned int, mpfq_TAG_src_vec, unsigned int);
+    void mpfq_TAG_vec_reduce(mpfq_TAG_dst_field, mpfq_TAG_dst_vec, mpfq_TAG_dst_vec_ur, unsigned int);
+      </synopsis>
+    </para>
+  </section>
+  
+  <section id="api.gf2n"><title>API for fields of characteristic two</title>
+    <para>If a field family belongs to the <code>CHAR2</code> realm, then
+      the API provides these additional functions:
+      <synopsis>
+    /* Behaves differently from set(): implements the reverse counting
+       map from [0..#K-1] -> K. */
+    void mpfq_TAG_set_uipoly(mpfq_TAG_dst_field, mpfq_TAG_dst_elt, unsigned long);
+    void mpfq_TAG_set_uipoly_wide(mpfq_TAG_dst_field, mpfq_TAG_dst_elt, const unsigned long *, unsigned int );
+    unsigned long mpfq_TAG_get_uipoly(mpfq_TAG_dst_field, mpfq_TAG_src_elt);
+    void mpfq_TAG_get_uipoly_wide(mpfq_TAG_dst_field, unsigned long *, mpfq_TAG_src_elt);
+
+    /* Arithmetic with uipoly elements */
+    void mpfq_TAG_add_uipoly(mpfq_TAG_dst_field, mpfq_TAG_dst_elt, mpfq_TAG_src_elt, unsigned long);
+    void mpfq_TAG_sub_uipoly(mpfq_TAG_dst_field, mpfq_TAG_dst_elt, mpfq_TAG_src_elt, unsigned long);
+    void mpfq_TAG_mul_uipoly(mpfq_TAG_dst_field, mpfq_TAG_dst_elt, mpfq_TAG_src_elt, unsigned long);
+
+    /* Artin Schreier equations: x^p-x = a. Undefined behaviour if
+       Tr(a) is not 0. */
+    void mpfq_TAG_as_solve(mpfq_TAG_dst_field, mpfq_TAG_dst_elt, mpfq_TAG_src_elt);
+    unsigned long mpfq_TAG_trace(mpfq_TAG_dst_field, mpfq_TAG_src_elt);
+      </synopsis>
+    </para>
+  </section>
+<section id="api.gfp">
+  <title>API for prime fields in Montgomery representation</title>
+  <para>
+    In Montgomery representation, an element <math>x</math> is
+    represented by <math>xR \mod p</math>, where <math>R</math> is a
+    power of 2 corresponding to the number of machine-words that can
+    contain <math>p</math>. 
+  </para>
+  <para>
+    Encoding and decoding between classical and Montgomery representation
+    is implemented by the following functions:
+    <synopsis>
+    void mpfq_TAG_mgy_enc(mpfq_TAG_dst_field, mpfq_TAG_dst_elt, mpfq_TAG_src_elt);
+    void mpfq_TAG_mgy_dec(mpfq_TAG_dst_field, mpfq_TAG_dst_elt, mpfq_TAG_src_elt);
+    </synopsis>
+  </para>
+</section>
+<section id="api.poly">
+  <title>API for polynomials</title>
+  <para>
+    For <code>FieldFamily</code>s for which the
+    <code>api_extension</code>s <code>POLY</code> is implemented, which
+    are every one for the moment, there are three more types.
+    <synopsis>
+    typedef mpfq_TAG_poly;
+    typedef mpfq_TAG_dst_poly;
+    typedef mpfq_TAG_src_poly;
+    </synopsis>
+  </para>
+  <para>
+    To manipulate objects of one of these types, one can use the following functions.
+    <synopsis>
+    /* Element allocation functions */
+    void mpfq_TAG_poly_init(mpfq_TAG_dst_field, mpfq_TAG_poly, unsigned int);
+    void mpfq_TAG_poly_clear(mpfq_TAG_dst_field, mpfq_TAG_poly);
+
+    /* Element assignment functions */
+    void mpfq_TAG_poly_set(mpfq_TAG_dst_field, mpfq_TAG_dst_poly, mpfq_TAG_src_poly);
+    void mpfq_TAG_poly_setmonic(mpfq_TAG_dst_field, mpfq_TAG_dst_poly, mpfq_TAG_src_poly);
+    void mpfq_TAG_poly_setcoef(mpfq_TAG_dst_field, mpfq_TAG_dst_poly, mpfq_TAG_src_poly, unsigned int);
+    void mpfq_TAG_poly_setcoef_ui(mpfq_TAG_dst_field, mpfq_TAG_dst_poly, unsigned long, unsigned int);
+    void mpfq_TAG_poly_getcoef(mpfq_TAG_dst_field, mpfq_TAG_dst_elt, mpfq_TAG_src_poly, unsigned int);
+    void mpfq_TAG_poly_random(mpfq_TAG_dst_field, mpfq_TAG_dst_poly, unsigned int, gmp_randstate_t);
+    void mpfq_TAG_poly_random2(mpfq_TAG_dst_field, mpfq_TAG_dst_poly, unsigned int, gmp_randstate_t);
+
+    /* Arithmetic operations on elements */
+    void mpfq_TAG_poly_add(mpfq_TAG_dst_field, mpfq_TAG_dst_poly, mpfq_TAG_src_poly, mpfq_TAG_src_poly);
+    void mpfq_TAG_poly_sub(mpfq_TAG_dst_field, mpfq_TAG_dst_poly, mpfq_TAG_src_poly, mpfq_TAG_src_poly);
+    void mpfq_TAG_poly_add_ui(mpfq_TAG_dst_field, mpfq_TAG_dst_poly, mpfq_TAG_src_poly, unsigned long);
+    void mpfq_TAG_poly_sub_ui(mpfq_TAG_dst_field, mpfq_TAG_dst_poly, mpfq_TAG_src_poly, unsigned long);
+    void mpfq_TAG_poly_neg(mpfq_TAG_dst_field, mpfq_TAG_dst_poly, mpfq_TAG_src_poly);
+    void mpfq_TAG_poly_scal_mul(mpfq_TAG_dst_field, mpfq_TAG_dst_poly, mpfq_TAG_src_poly, mpfq_TAG_src_elt);
+    void mpfq_TAG_poly_mul(mpfq_TAG_dst_field, mpfq_TAG_dst_poly, mpfq_TAG_src_poly, mpfq_TAG_src_poly);
+    void mpfq_TAG_poly_divmod(mpfq_TAG_dst_field, mpfq_TAG_dst_poly, mpfq_TAG_dst_poly, mpfq_TAG_src_poly, mpfq_TAG_src_poly);
+    void mpfq_TAG_poly_precomp_mod(mpfq_TAG_dst_field, mpfq_TAG_dst_poly, mpfq_TAG_src_poly);
+    void mpfq_TAG_poly_mod_pre(mpfq_TAG_dst_field, mpfq_TAG_dst_poly, mpfq_TAG_src_poly, mpfq_TAG_src_poly, mpfq_TAG_src_poly);
+    </synopsis>
+
+    The function <code>divmod</code> implements, for now, the basic
+    algorithm for the Euclidiean division. The functions
+    <code>precomp_mod</code> and <code>mod_pre</code> are related to
+    another algorithm for the Euclidean division.
+    <code>precomp_mod</code>(K,Q,P) computes the inverse of
+    <math>X^NP(1/X)</math> modulo <math>X^N</math>, and puts it in Q,
+    where N is the degree of P. It requires that P be a monic polynomial
+    over the field K. <code>mod_pre</code>(K,R,Q,P,invrevP) computes the
+    reminder of the Euclidean division of Q by P and puts it in R,
+    provided that invrevP is the inverse of <math>X^NP(1/X)</math> modulo
+    <math>X^N</math>, where N is the degree of P. For more information,
+    one can read chapter 9 of Modern Computer Algebra from Joachim von
+    zur Gathen and Jürgen Gerhard, and in particular Algotihm 9.5.
+    
+    <synopsis>
+    /* gcd functions */
+    void mpfq_TAG_poly_gcd(mpfq_TAG_dst_field, mpfq_TAG_dst_poly, mpfq_TAG_src_poly, mpfq_TAG_src_poly);
+    void mpfq_TAG_poly_xgcd(mpfq_TAG_dst_field, mpfq_TAG_dst_poly, mpfq_TAG_dst_poly, mpfq_TAG_dst_poly, mpfq_TAG_src_poly, mpfq_TAG_src_poly);
+    /* Comparison function */
+    int mpfq_TAG_poly_cmp(mpfq_TAG_dst_field, mpfq_TAG_src_poly, mpfq_TAG_src_poly);
+    int mpfq_TAG_poly_deg(mpfq_TAG_dst_field, mpfq_TAG_src_poly);
+
+    /* Input/output functions */
+    void mpfq_TAG_poly_asprint(mpfq_TAG_dst_field, char**, mpfq_TAG_src_poly);
+    void mpfq_TAG_poly_fprint(mpfq_TAG_dst_field, FILE*, mpfq_TAG_src_poly);
+    void mpfq_TAG_poly_print(mpfq_TAG_dst_field, mpfq_TAG_src_poly);
+    int mpfq_TAG_poly_sscan(mpfq_TAG_dst_field, mpfq_TAG_dst_poly, const char*);
+    int mpfq_TAG_poly_fscan(mpfq_TAG_dst_field, FILE*, mpfq_TAG_dst_poly);
+    int mpfq_TAG_poly_scan(mpfq_TAG_dst_field, mpfq_TAG_dst_poly);
+    </synopsis>
+  </para>
+</section>
+<section>
+  <title>Examples</title>
+  <para>
+    Some examples of using the &mpfq; library are given in the
+    <code>apps/</code> subdirectory of the distribution. 
+  </para>
+  <para>
+    In the <code>test/</code> subdirectory, there is also an example. In
+    that case, a genericity layer is obtained using CPP macros,
+    automatically computed from the API file. In the future, this layer
+    might evolve (possibly into a C++ wrapper) and be more documented.
+  </para>
+</section>
+</chapter>

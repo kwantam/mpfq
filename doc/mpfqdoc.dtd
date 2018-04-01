@@ -1,0 +1,51 @@
+<!-- DTD for mpfqdoc, aka:
+"-//Emmanuel Thome at normalesup dot org//DTD DocBook V4.4-based Extension TeXMath//EN"
+based on PUBLIC "-//OASIS//DTD DocBook V4.4//EN"
+
+I'm not sure whether I do want PCDATA (parsed char data) instead of simply
+CDATA.
+
+-->
+<!ENTITY % local.tech.char.class "|math">
+<!ENTITY % local.formal.class "|displaymath">
+<!ENTITY % mpfqmath.module "INCLUDE">
+
+<!ENTITY % DocBookDTD PUBLIC "-//OASIS//DTD DocBook V4.4//EN"
+	"http://www.oasis-open.org/docbook/xml/4.4/docbookx.dtd"
+>
+%DocBookDTD;
+
+<![%mpfqmath.module;[
+	<!ENTITY % mpfqmath.attrib "
+		image CDATA #IMPLIED
+		style CDATA #IMPLIED
+	">
+
+	<!ENTITY % math.element "INCLUDE">
+	<![%math.element;[
+		<!ELEMENT math (#PCDATA|%base.char.class;)*>
+	]]>
+
+	<!ENTITY % math.attlist "INCLUDE">
+	<![%math.attlist;[
+		<!ATTLIST math
+				%mpfqmath.attrib;
+		>
+	]]>
+
+	<!ENTITY % displaymath.element "INCLUDE">
+	<![%displaymath.element;[
+		<!ELEMENT displaymath (#PCDATA|%base.char.class;)*>
+	]]>
+
+	<!ENTITY % displaymath.attlist "INCLUDE">
+	<![%displaymath.attlist;[
+		<!ATTLIST displaymath
+				%mpfqmath.attrib;
+		>
+	]]>
+]]>
+
+<!-- %common.attrib; removed from attlists... -->
+
+

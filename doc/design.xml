@@ -1,0 +1,90 @@
+<chapter> <title>Design of the library</title>
+  <sect1><title>Foreword</title>
+    <para>
+      This chapter comments the main design decisions concerning the &mpfq;
+      library. Reading this chapter is not an absolute necessity, but helps
+      understanding the logic behind &mpfq;
+    </para>
+    <para>
+      The most important decision concerning &mpfq; is the use of
+      automatically generated code for a wide variety of uses. This is a
+      necessity called for by the efficiency requirements. Obviously it
+      comes with pros and cons, some of which will be explained right below
+    </para>
+
+    <sect2><title>Advantages of automatically generated code</title>
+      <para>
+        Generating code automatically enables some benefits which are hardly
+        accessible with static code.
+        The first thing to note is that obviously, special-purpose code,
+        fitted for finite fields satisfying some specified characteristics,
+        may only be issued when these characteristics are known, in
+        <emphasis>compile time</emphasis>.
+      </para>
+      <itemizedlist>
+        <listitem><para>
+            The data type for finite fields elements is not fixed. It can
+            be trimmed down to only the necessary information. This has
+            the consequence that at least in the cases of &gfp; and
+            &gf2n; (respectively, for known word size of <math>p</math>,
+            and for known value of <math>n</math>), the <emphasis>storage
+              size</emphasis> of finite field elements is constant, and
+            hides no indirection. No reallocation is required. Objects
+            can be dealt with at any arbitrary place in memory, every
+            sequence of bytes in memory may be interpreted as a finite
+            field element.
+        </para></listitem>
+        <listitem>
+          <para>
+            It is possible to handle small fields at best speed; if only one
+            assembly instruction is needed, then generated code will (or at
+            least, should) be an inline function equivalent to exactly that
+            instruction.
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            Extending this principle, if assembly instructions very well
+            adapted to the finite field in consideration are available on
+            some given platform, then generated code ought to use these
+            instuctions. Examples of such cases are &mmx; and &sse2;
+            instructions, useful for multiplications in &gf2n;.
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            Using generated code so widely is special to &mpfq; and gives
+            an incentive for better dissemination.  Having the ability to
+            provide the best possible speed for finite fields known in
+            advance makes &mpfq; a goood choice for every situtation where
+            the finite field in which calculations are to be done is known:
+            there is no need to reinvent the wheel. The authors of &mpfq;
+            recall having in several occasions re-implemented some dirty
+            interface to finite field operations, only to gain the «
+            expected » improvement from special-purpose code. The very
+            purpose of &mpfq; is to address this situation, which existing
+            software libraries do not do.
+          </para>
+        </listitem>
+      </itemizedlist>
+    </sect2>
+    <sect2><title>Disadvantages of automatically generated code</title>
+    <para>As can be expected, the road of automatically generated code
+      incurs some difficulties. We felt however that none of these
+      difficulties should bar the efficiency goal set forth for &mpfq;.
+      We list here the difficulties that we have considered.
+    </para>
+    <itemizedlist>
+      <listitem><para>
+          Special-purpose code is, well, special-purpose. This clearly
+          forbids generic compiled code that will « just work » on any finite
+          field. This being said, coherence in typing and function
+          naming, through the <link linkend='mpfq.api'>&mpfq; API</link>
+          makes it possible to re-use source code (much in the way
+          &langCxx;
+          templates work — however &mpfq; is entirely in &langC;).
+      </para></listitem>
+    </itemizedlist>
+  </sect2>
+</sect1>
+</chapter>

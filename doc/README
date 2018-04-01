@@ -1,0 +1,19 @@
+
+The prerequisites for processing the current documentation are (at least)
+the following packages, or packages providing similar command-line
+functionality.
+
+* docbook-style-xsl-1.68.1-1.1
+
+ftp://download.fedora.redhat.com/pub/fedora/linux/core/4/i386/os/Fedora/RPMS/docbook-style-xsl-1.68.1-1.noarch.rpm
+
+* libxslt-1.1.14-2
+
+ftp://download.fedora.redhat.com/pub/fedora/linux/core/4/i386/os/Fedora/RPMS/libxslt-1.1.14-2.i386.rpm
+
+* xmltex-20020625-5.2
+
+ftp://download.fedora.redhat.com/pub/fedora/linux/core/updates/testing/4/i386/xmltex-20020625-5.2.noarch.rpm
+
+* netpbm-progs-10.31-1.FC4
+* ImageMagick-6.2.2.0-3.fc4.1

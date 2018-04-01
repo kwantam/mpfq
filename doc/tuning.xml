@@ -1,0 +1,59 @@
+<chapter><title>Tuning</title>
+  <sect1><title>Build targets for tuning</title>
+    <para>Parts of &mpfq; allow tuning: different possible codes are
+      generated, and the fastest one is marked as preferred for later
+      code generations.</para>
+    <para>Presently, the only part of &mpfq; which allows this
+      mechanism is the multiplication of binary polynomials. Hard-coded
+      defaults offer satisfactory performance, but tuning helps in
+      improving the speed. Possible targets are:
+      <itemizedlist>
+        <listitem><para><code>tune-gf2n</code>
+            Run tuning for all binary field sizes configured.
+        </para></listitem>
+        <listitem><para><code>tune-TAG</code>, e.g.
+            <code>tune-0-to-64</code> Perform tuning for the specified
+            field sizes. The tuning results are saved into the file
+            <code>gf2x/wizard.table</code> which serves as a cache database
+            if the tuning target is run again. Type <code>make help | grep tun</code> to see the list of available tuning targets.</para></listitem>
+      </itemizedlist>
+      Notice that in order to observe the possible speedup gained from
+      tuning, you must rebuild the affected target. The CMake
+      dependency system should normally see, if you run e.g. <code>make
+        check</code> after tuning, that binaries have to be rebuilt so
+      that the newly chosen code is used.
+    </para>
+    <para><emphasis>A word of caution concerning tuning</emphasis>. The
+      tuning process is not immune to speed measurement difficulties.
+      The different possible codes are generated as function in a
+      separate object file, and compared with respect to each other.
+      This is not the same context as your favorite application, which
+      in particular is likely to include the &mpfq; functions as
+      inlined code. Future releases of &mpfq; will likely try to adopt
+      a different approach to tuning.</para>
+    <para>A consequence of these measurement difficulties is that if
+      you run <code>make bench-apps</code>, <code>make
+        tune-gf2n</code>, in order, and <code>make bench-apps</code>
+      again, you might not see as noticeable an improvement for
+      <math>\mathbb{F}_{2^{251}}</math> as the tuning code claims. In
+      contrast, the
+      tuning benefit for <math>\mathbb{F}_{2^{113}}</math> is
+      visible.
+    </para>
+  </sect1>
+  <sect1><title>Exporting and importing tuning results</title>
+    <para>Tuning results are meaningful across identical CPUs. Therefore,
+      it makes sense to share tuning results across different builds. For
+      this reason, exporting and importing the tuning table is
+      possible.</para>
+    <para>The file <code>gf2x/wizard.table</code> of the &mpfq; build
+      tree can be exported, after tuning, if you want to
+      <emphasis>save</emphasis> your measurements.</para>
+    <para>Likewise, it is possible to teach the &mpfq; build system into
+      using an <emphasis>imported</emphasis> tuning table. For this
+      purpose, after having initiated the build directory by running
+      <code>cmake /path/to/mpfq/source/dir</code>, you may copy your
+      tuning file to the location
+      <code>/path/to/mpfq/source/dir/gf2x/wizard.table</code>.</para>
+  </sect1>
+</chapter>

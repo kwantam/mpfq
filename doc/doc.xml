@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE book
+PUBLIC "-//Emmanuel Thome at normalesup dot org//DTD DocBook V4.4-based Extension TeXMath//EN" "mpfqdoc.dtd"
+[
+  <!ENTITY chap-intro SYSTEM "intro.xml">
+  <!ENTITY chap-install SYSTEM "install.xml">
+  <!ENTITY chap-tuning SYSTEM "tuning.xml">
+  <!ENTITY chap-api SYSTEM "api.xml">
+  <!ENTITY chap-design SYSTEM "design.xml">
+  <!ENTITY chap-fieldimpl SYSTEM "fieldimpl.xml">
+  <!ENTITY gengf7 SYSTEM "../src/gf7/gen_gf7.pl">
+  <!ENTITY mpfq "MPFQ">
+  <!ENTITY perl "Perl">
+  <!ENTITY mmx "MMX">
+  <!ENTITY sse2 "SSE2">
+  <!ENTITY ulong "unsigned long">
+  <!ENTITY gfp "<math>\mathbb{F}_p</math>">
+  <!ENTITY gf2 "<math>\mathbb{F}_2</math>">
+  <!ENTITY gf2n "<math>\mathbb{F}_{2^n}</math>">
+  <!ENTITY langC "C">
+  <!ENTITY langCxx "C++">
+  <!ENTITY impldef "<type>implementation-defined</type>">
+]>
+<book><title>&mpfq; : Fast Finite fields</title>
+  <bookinfo>
+  <author><firstname>Pierrick</firstname><surname>Gaudry</surname></author>
+  <author><firstname>Luc</firstname><surname>Sanselme</surname></author>
+  <author><firstname>Emmanuel</firstname><surname>Thomé</surname></author>
+  </bookinfo>
+&chap-intro;
+&chap-install;
+&chap-tuning;
+&chap-api;
+&chap-design;
+&chap-fieldimpl;
+<!-- 
+&chap2;
+&chap3;
+-->
+</book>

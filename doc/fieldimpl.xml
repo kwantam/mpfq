@@ -1,0 +1,461 @@
+<chapter> <title>How to implement or modify a field</title>
+  <sect1><title>Enforcing the API</title>
+    <para>
+      Each implementation should strictly follow the API. For that an
+      automated generation scheme is present that must be used.
+      Therefore, for each field or class of field, one must provide a
+      list of &perl; functions of the form <code>code_for_xxx()</code>,
+      where <code>xxx</code> is
+      the name of a function in the API. The generation scheme will then
+      be able to check that every function in the API is indeed
+      implemented and will produce a prototype directly from the API.
+    </para>
+  </sect1>
+
+  <sect1><title>Input/Output of <code>code_for_xxx()</code></title>
+    <para>
+      For basic functions, the function <code>code_for_xxx()</code> does not take any
+      input. However, in order to give a way to choose between different
+      codes, a hash called <code>$options</code> is passed as a first argument. It
+      is up to the field implementer to decide which options are
+      pertinent for the class of fields he considers. A very typical
+      option will be the word size (32 or 64).
+    </para>
+    <para>
+      In order for the function <code>code_for_xxx()</code> to have
+      access to appropriate names, the special sequence <code>@!</code>
+      is available: it is verbatim translated to the appropriate prefix
+      <code>mpfq_TAG_</code> during code creation. Hence, for instance, if
+      the code needs an intermediate field element for the computation,
+      it can be declared like that:
+      <synopsis>
+        @!elt tmp_elt;
+      </synopsis>
+    </para>
+    <para>
+      The output of <code>code_for_xxx()</code> should be an array of two elements:
+      the first follows the prototype given by the API, and give names to
+      the parameters of the function <code>xxx</code> to be used in the
+      implementation. The second element returned by
+      <code>code_for_xxx()</code> is a
+      string giving the C function implementation. For example, for
+      the field GF(7), the addition will be implemented by the following
+      &perl; code:
+      <synopsis>
+        sub <function>code_for_add</function> {
+            return [ 'inline(K!, z, x, y)', "z = (x+y)%7;" ];
+        }
+      </synopsis>
+    </para>
+    <para>
+      If the implementation of <code>code_for_xxx()</code> requires
+      auxiliary functions that are not listed in api.pl (for instance
+      <code>code_for_mul</code> might rely on
+      <code>code_for_karatsuba</code>), then they must be returned as
+      one or several additional members at the end of the returned array.
+      Each such member must be a hash reference of the following form:
+      <synopsis>
+        {
+          kind => 'inline(K!, z, x, y)',
+          code => 'z = x+y',
+          name => 'unreduced_add',
+          requirements => 'dst_elt src_elt src_elt'
+        }
+      </synopsis>
+      where <code>kind</code> and <code>requirements</code> describe the
+      prototype, <code>code</code> is the body of the function, and
+      <code>name</code> is its name as called by
+      <code>code_for_xxx()</code>. Beware that it will be created with a
+      <code>mpfq_TAG</code> prefix, so that inside
+      <code>code_for_xxx()</code> you must add <code>@!</code> in front
+      of the name you give in the <code>name</code> key.
+    </para>
+    <para>
+      There is a small example in <code>src/gf7/code_for_7.pm</code>,
+      that is a (very partial!) implementation of GF(7).
+    </para>
+  </sect1>
+  <sect1><title>Splitting information in several files</title>
+    <para>
+      The various functions to be implemented are to be provided in the form of <code>code_for_xxx()</code> perl functions. For better organization, these may be organized in several distinct perl modules. This is not a necessity, but it is at least good to know how this is supposed to work. We distinguish three types of files.
+      <itemizedlist>
+        <listitem><para>
+            The elementary package files. These only have the mission of providing some <code>code_for_xxx</code> functions. The &mpfq; distribution contains some such packages, e.g. in <code>Mpfq::defaults</code>. These files must be named with the extension <code>.pm</code>, and abide by the following requirements.
+            <itemizedlist>
+              <listitem>
+                <para>
+                  begin with the proper <code>package</code> statement. This statement must match the way the package is made reachable from <code>perl</code>'s includes. E.g. if the file is to be reached at the path <code>some/where/pkg.pm</code>, then it should begin with <code>package some::where::pkg;</code>.</para></listitem>
+              <listitem>
+                <para>Terminate with the <code>1;</code> statement to ensure a true value on package load.</para></listitem>
+              <listitem>
+                <para>
+                  Each elementary package file may include other package files of the same form. Such included packages are called parents of the current package. This mechanism resembles an object model's multiple inheritance schema, although &mpfq; has chosen to divert from <code>perl</code>'s built-in MI mechanism. This is detailed later on.
+              </para></listitem>
+            </itemizedlist>
+            We note that the set of <code>code_for_xxx</code> functions provided by an elementary package file does not have to be complete in any way.
+        </para></listitem>
+        <listitem>
+          <para>
+            The top-level package file. This file is a wrap-up of several elementary package files. It typically includes many elementary package files, and as such, it obeys the same requirements as the package files themselves. The top-level package files does not absolutely need to rely of inclusion of several package files, as it is possible for all <code>code_for_xxx</code> functions to appear directly at the top-level. The stuff which distinguishes the top-level package file from the more elementary ones is that it
+                must define a perl object, which inherits from <code>Mpfq::engine::handler</code>. This is achieved by including the following statements in the code.
+                  <programlisting>
+use Mpfq::engine::handler;
+our @ISA = qw/Mpfq::engine::handler/;
+sub new { return bless({},shift); }
+</programlisting>
+          An additional requirement for the top-level package file is that the set of <code>code_for_xxx</code> functions it (and its parents) provide has to be complete.
+</para></listitem>
+          <listitem>
+            <para>
+              The generator file. This file mainly arranges so that the top-level package file gets created, and calls the appropriate functions. One of the tasks of the main generator file is also to setup the <code>perl</code> include path properly (possibly relatively to the current file).
+          </para></listitem>
+</itemizedlist>
+</para></sect1>
+<sect1><title>The inheritance schema, and conflict resolution</title>
+  <para>Several package files may be stitched together to form a complete implementation. This is achieved, in a package (including, but not restricted to, the top-level package file), by inclusion statements such as:
+    <programlisting>
+use Mpfq::defaults;
+use Mpfq::defaults::flatdata;
+our @parents = qw/
+    Mpfq::defaults 
+    Mpfq::defaults::flatdata
+/;
+</programlisting></para>
+<para>The question which arises is the decision of what happens if a given <code>code_for_xxx</code> functions exists in package and also one or several of its parents. We distinguish the notion of a function <code>code_for_xxx</code> appearing in a given package, where we say the the package directly provides the function, or appearing in a package or one of this ancestor, in which case we say that the function is reachable from that package.
+  The following rules are applied to constitute the list of functions reachable from a package unambiguously.
+  <itemizedlist>
+    <listitem>
+      <para>If a package directly provides a function, this implementation has precedence over all functions of the same name reachable from any of its parents.</para>
+    </listitem>
+    <listitem>
+      <para>If a package does not provide a given function directly, this function must be reachable by at most one of the package's parents. As a moderating exception to this rule, we also tolerate (albeit at the expense of a warning) the situation where the only implementation of a function which is reachable from a given package is within a single ancestor of the package, but accessible from the package via two distinct ancestry threads.
+    </para></listitem>
+    <listitem><para>
+        To alleviate the concern about conflicting ancestries to reach a function from a given package, a conflict resolution mechanism exists. This involves the package variable <code>$resolve_conflicts</code>. For example, some default package files of &mpfq; include a code fragment similar to:
+        <programlisting>
+use Mpfq::defaults;
+use Mpfq::defaults::flatdata;
+our @parents = qw/
+    Mpfq::defaults
+    Mpfq::defaults::flatdata
+/;  
+our $resolve_conflicts = {
+    vec_set => 'Mpfq::defaults::flatdata',
+    vec_ur_set => 'Mpfq::defaults::flatdata',
+};  
+</programlisting>
+The syntax of this hash table should be self-explanatory.
+</para></listitem></itemizedlist></para></sect1>
+
+<sect1><title>The elementary package files: the <code>init_handler</code> functions.</title>
+  <para>There is little to mention about the elementary package files. As stated, these must include some <code>code_for_xxx</code> functions. Beyond that, a couple of extra functions may be provided, names <code>init_handler</code> and <code>exit_handler</code>. As their name suggest, these are called before and after the actual code generation. None of the built-in elementary package files un &mpfq; makes use of the  <code>exit_handler</code> mechanism, but the <code>init_handler</code> functions are widely used. These are meant to instruct &mpfq; to add for example some <code>#include</code> statements in the generated code. The data fed to <code>init_handler</code> on input, and expected from its returned value, is specified as follows.
+  </para>
+        <para>
+          On input, a reference to a hash is provided. This exactly matches the <code>$options</code> argument which is fed to the <code>create_code</code> method from the main generator file. The <code>init_handler</code> may examine this hash, and base its returned value on that.</para>
+
+        <para>The output is also a reference to a hash. The members end up in the final <code>$code</code> hash in the generation mechanism (see main generator file). The expected members may be any of the following.
+    <itemizedlist>
+      <listitem>
+        <para><code>types</code>. This defines the types provided by the implementation. For example, one may have:
+          <programlisting>
+sub init_handler {
+  return { types => { elt => "typedef unsigned long @!elt\[1\];" } };
+}
+</programlisting>
+</para></listitem>
+      <listitem>
+        <para><code>banner</code>. This gets inserted verbatim in the generated <code>.c</code> and <code>.h</code> files. For example one may have:
+          <programlisting>
+sub init_handler {
+  my $opt = shift;
+  return { banner => "/* $opt->{'poly'} */" };
+}
+</programlisting>
+</para></listitem>
+<listitem><para><code>includes</code>. This defines files to be <code>#include</code>'d from the generated <code>.h</code> file. As an alternate syntax, the key <code>c:includes</code> may be used for files which are to be included only from the generated <code>.c</code> file. We may have:
+    <programlisting>
+sub init_handler {
+  return { includes => "&lt;stdio.h&gt;", 'c:includes' => "&lt;inttypes.h&gt;" };
+}
+</programlisting>
+</para></listitem>
+</itemizedlist>
+</para>
+</sect1>
+
+<sect1><title>The top-level package file</title>
+  <para>The goal of the top-level package file is to make as many function of the &mpfq; API reachable. The top-level package file also must define a Perl object. We discuss by example the file provided in the &mpfq; distribution as an example, under <code>src/gf7/gf7.pm</code>.</para>
+<para>
+We proceed through this file line by line (comments, which exist in the file, are stripped off here).
+<programlisting linenumbering="numbered" continuation="restarts">
+package gf7;
+
+use strict;
+use warnings;
+</programlisting>
+Not much to say about the first fragment above. The package name must match the file name.
+<programlisting linenumbering="numbered" continuation="continues">
+use Mpfq::engine::handler;
+our @ISA = qw/Mpfq::engine::handler/;
+sub new { return bless({},shift); }
+</programlisting>
+Here we set up the object mechanism. Not much (well actually nothing) is conveyed within the object in terms of data<footnote><para>But this could evolve otherwise in the future.</para></footnote>. The main use of the object is to contain a reference to a given package.
+<programlisting linenumbering="numbered" continuation="continues">
+use Mpfq::defaults;
+use Mpfq::defaults::flatdata;
+use Mpfq::defaults::poly;
+our @parents = qw/
+    Mpfq::defaults
+    Mpfq::defaults::flatdata
+    Mpfq::defaults::poly
+/;
+</programlisting>
+The fragment above lists the parents of the given package. All package files may mention such parents.
+<programlisting linenumbering="numbered" continuation="continues">
+our $resolve_conflicts = {
+    vec_set => 'Mpfq::defaults::flatdata',
+    vec_ur_set => 'Mpfq::defaults::flatdata',
+};
+</programlisting>
+This is optional, and is used to disambiguate possible conflicts.
+<programlisting linenumbering="numbered" continuation="continues">
+sub code_for_add { return [ 'inline(K!, z, x, y)', "z = (x+y)%7;" ]; }
+</programlisting>
+This is one of the code generation functions expected in this file.
+<programlisting linenumbering="numbered" continuation="continues">
+sub code_for_sub_helper {
+    return {
+        kind=>'inline(z, x, y)',
+        name=>'sub_helper',
+        requirements=>'dst_elt src_elt src_elt',
+        code=>'z = x-y;',
+    };
+}
+# The function called by the automatic generator should return as usual
+# its proto and its code, but additionnally a hash describing the helper
+# function (there might be several of them).
+sub code_for_sub {
+    my $proto = 'inline(k, z, x, y)';
+    my $code = '';
+    $code .= "@!sub_helper(z, x, y);\n";
+    $code .= "if ((long)z &lt; 0)\n";
+    $code .= "      z += 7;\n";
+    return [ $proto, $code, code_for_sub_helper() ];
+}
+</programlisting>
+This example is slightly more complicated and uses the extended syntax allowed for <code>code_for_xxx</code>, where dependencies between functions are possible.
+<programlisting linenumbering="numbered" continuation="continues">
+sub init_handler {
+  my $types = {
+    elt =>      "typedef unsigned long @!elt\[1\];",
+    dst_elt =>  "typedef unsigned long * @!dst_elt;",
+    src_elt =>  "typedef const unsigned long * @!src_elt;",
+
+    elt_ur =>   "typedef unsigned long @!elt_ur\[1\];",
+    dst_elt_ur =>       "typedef unsigned long * @!dst_elt_ur;",
+    src_elt_ur =>       "typedef const unsigned long * @!src_elt_ur;",
+
+    field       =>      'typedef void * @!field;',
+    dst_field   =>      'typedef void * @!dst_field;',
+  };
+  return { types => $types };
+}
+1;
+</programlisting>
+This finished the package file (note the <code>1;</code>). The <code>init_handler</code> provides some typedefs to be included in the generated code.</para>
+
+</sect1>
+
+  <sect1><title>The main generator file</title>
+    <para> Traditionally, the main generator file is called
+      <code>gen_XYZ.pl</code> and lies in a directory <code>XYZ</code> where the
+      code generation for <code>TAG</code> is going to take place. We
+      start by giving an example that is available in the &mpfq;
+      distribution in <code>src/gf7/gen_gf7.pl</code>:
+      <programlisting linenumbering="numbered">
+&gengf7;
+      </programlisting>
+    </para>
+    <para>
+      The code generation proceeds in 4 steps:
+      <itemizedlist>
+        <listitem><para>
+            Reading the API. This is done using the
+            <code>read_api()</code> function, which takes a file, and
+            optionally, realms. It returns a hash that is usually stored
+            in a variable <code>$api</code> that will be passed as an
+            argument to other functions of the code generation.
+        </para></listitem>
+        <listitem><para>
+            Creating the object of the proper type. For the moment this involves only calling the <code>new</code> method of the chosen package. The methods below for code generations are methods of that object, since all objects considered inherit from common &mpfq; bare bones.
+        </para></listitem>
+        <listitem><para>
+            Creating the code with <code>create_code()</code>. This is
+            the function that calls all the <code>code_for_xxx</code>
+            functions that creates C code. It works by side-effect on the
+            <code>$code</code> variable. Prior to calling the code
+            generating functions, <code>create_code()</code> calls the
+            <code>init_handler()</code> if present in the packages within the ancestry of the class of the object.
+            Upon exit it
+            similarily calls the <code>exit_handler()</code> function.
+            Each <code>init_handler()</code> should return
+            hash entries to be inserted in the <code>$code</code>
+            parameter. It is also possible to modify the <code>$code</code> hash directly from the main generator, instead of from a package file (although best practices favor the latter).
+        </para></listitem>
+        <listitem><para>
+            Creating the files with <code>create_files()</code>. This
+            write the resulting <code>.c</code> and <code>.h</code>
+            files. The first argument specifies a path for the output
+            files, which are named <code>mpfq_TAG.c</code> and
+            <code>mpfq_TAG.h</code>, where <code>TAG</code> denotes the
+            second argument.
+        </para></listitem>
+      </itemizedlist>
+    </para>
+    <para>
+      The main generator file is rather short, and does very little beyond the steps above. We go through its different sections in order.
+      <programlisting linenumbering="numbered" continuation="restarts">
+#!/usr/bin/perl -w
+use warnings;
+use strict;
+</programlisting>
+It is handy to make the main generator file an executable <code>perl</code> script.
+<programlisting linenumbering="numbered" continuation="continues">
+use File::Spec;
+my $dirname;
+BEGIN {
+    $dirname = (File::Spec->splitpath($0))[1];
+    unshift @INC, "$dirname/../perl-lib";
+}   
+</programlisting>
+The fragment above is the chosen mechanism to setup <code>perl</code>'s include path to also contain the <code>perl-lib</code> subdirectory at the upper level.
+<programlisting linenumbering="numbered" continuation="continues">
+use gf7;
+</programlisting>
+This loads the top-level package file (described in the previous section).
+<programlisting linenumbering="numbered" continuation="continues">
+use Mpfq::engine::conf qw(read_api);
+my $api_file = "$dirname/../api.pl";
+my $api = Mpfq::engine::conf::read_api $api_file, qw/FIELD POLY/;
+</programlisting>
+This is mandatory as one of the tasks of the main generator file is to read the &mpfq; API file.
+<programlisting linenumbering="numbered" continuation="continues">
+  my $object = gf7->new();
+</programlisting> 
+This creates an object of the class defined by the top-level package file.
+<programlisting linenumbering="numbered" continuation="continues">
+  my $code = {};
+  my $options = {};
+</programlisting>
+The two (references to) hashes above must be created. The first array will hold the complete generated codde, while the <code>$options</code> hash is passed as an argument to all code generation functions. It is a convenient way to pass information to these functions.
+<programlisting linenumbering="numbered" continuation="continues">
+  $object->create_code($api, $code, $options);
+</programlisting>
+This effectively does the code generation in memory.
+<programlisting linenumbering="numbered" continuation="continues">
+$object->create_files('.', 'gf7', $api, $code);
+</programlisting>
+and this final statement creates the source files.
+</para>
+
+
+<sect2><title>Some extra notes</title>
+
+
+
+    <para>
+      The definition of the types required by the API can be done at
+      various places, including in the MAIN, like in the example. These
+      types have to be added as the <code>types</code> member of the
+      <code>$code</code> hash.  </para>
+    <para>
+      All along the generation, one might want to pass some information
+      to the <code>code_for_xxx</code>; the <code>$options</code> is meant
+      for that. What to put in this hash is up to the implementor. 
+    </para>
+    <para> Let us summarize the meaning of the 3 important variables:
+      <itemizedlist>
+        <listitem><para>
+            <code>$code</code> is a hash. Here is the expected contents
+            at the end of the process (before entering
+            <code>create_files()</code>).
+          <itemizedlist><listitem><para>
+            There should be:
+                  an entry for each function to implement:
+            <synopsis>
+    $code->{'add'} = ...;
+            </synopsis>
+            where ... is a hash reference describing the implementation.
+            The implementation may be tagged as macro, function, or inlined.
+            See <code>perl-lib/Mpfq/handler.pm</code> (comments before 
+            the <code>ship_code</code> function) for the documentation of
+            the other hash members.
+            </para>
+            </listitem>
+            <listitem><para>
+            There must be an entry describing types (generated either
+            from
+            <code>the gen_TAG.pl</code> or from some
+            <code>init_handler()</code> as described above)
+            <synopsis>
+     $code->{'types'} = {
+         elt => "typedef unsigned long $elt\[17\];",
+         dst =>  "typedef unsigned long * $dst;",
+         src =>  "typedef const unsigned long * $src;",
+         ...
+     }
+            </synopsis>
+            </para>
+            </listitem>
+            <listitem><para>
+            It is possible to have a <code>cpp_asserts</code> entry. This
+            will translates into some assertion at the preprocessor
+            level. For instance, use :
+            <synopsis>
+     $code->{'cpp_asserts'} = [ "GMP_LIMB_BITS == 64" ];
+            </synopsis>
+            if the generated code is only for 64 bit computers.
+            </para>
+            </listitem>
+            <listitem>
+            <para>
+            Another important field is for <code>#include</code> that are
+            required by the implementation. The includes that must be
+            added at the top of the <code>.h</code> file are to be
+            declared as follows:
+            <synopsis>
+     $code->{'includes'} = [ '"my_macros.h"', '"grouik.h"' ];
+            </synopsis>
+            </para>
+            </listitem>
+            <listitem>
+            <para>
+            More complicated statements that must be put at the top
+            of the <code>.h</code> can be declared in the
+            <code>extra</code> field:
+            <synopsis>
+     $code->{'extra'} = [ "#ifndef __GNU_C_\n#warning \"non free compiler!\"\n#endif" ];
+            </synopsis>
+            </para>
+            </listitem>
+            <listitem>
+            <para>
+            Finally,  <code>$code->{'banner'}</code> is a banner to put
+            in the head of <code>.c</code> and <code>.h</code> files.
+        </para></listitem>
+  </itemizedlist></para></listitem>
+        <listitem><para>
+            <code>$options</code> is a hash. It is passed as an argument
+            to every creator. This is up to you to decide which option is
+            relevant for your implementation.
+        </para></listitem>
+        <listitem><para>
+            <code>$api</code> is another hash. This is essentially a copy
+            of the <code>api.pl</code> file and there is nothing to play
+            with.
+        </para></listitem>
+      </itemizedlist>
+    </para>
+  </sect2>
+  </sect1>
+</chapter>
